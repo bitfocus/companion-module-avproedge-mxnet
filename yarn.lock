@@ -466,6 +466,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"avproedge-mxnet@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "avproedge-mxnet@workspace:."
+  dependencies:
+    "@companion-module/base": "npm:~1.11.2"
+    "@companion-module/tools": "npm:^2.6.1"
+    "@streamparser/json": "npm:^0.0.22"
+    prettier: "npm:^3.4.2"
+  languageName: unknown
+  linkType: soft
+
 "baseline-browser-mapping@npm:^2.9.0":
   version: 2.9.19
   resolution: "baseline-browser-mapping@npm:2.9.19"
@@ -1613,17 +1624,6 @@ __metadata:
   checksum: 10c0/36d4793e9cf7060f9da543baf67c55e354f4862c8d3d34de1a1b1d7c382d44171315cc54abf84d8900b8113d742b830108a1434f4898fb244f9b7e8426d4b8f5
   languageName: node
   linkType: hard
-
-"your-module-name@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "your-module-name@workspace:."
-  dependencies:
-    "@companion-module/base": "npm:~1.11.2"
-    "@companion-module/tools": "npm:^2.6.1"
-    "@streamparser/json": "npm:^0.0.22"
-    prettier: "npm:^3.4.2"
-  languageName: unknown
-  linkType: soft
 
 "zx@npm:^8.8.5":
   version: 8.8.5
