@@ -11,7 +11,7 @@ class MXnetInstance extends InstanceBase {
 	async init(config) {
 		this.config = config
 
-		this.updateStatus(InstanceStatus.Ok)
+		this.updateStatus(InstanceStatus.Connecting)
 
 		this.updateActions() // export actions
 
@@ -25,8 +25,6 @@ class MXnetInstance extends InstanceBase {
 	}
 	// When module gets deleted
 	async destroy() {
-		this.log('debug', 'destroy')
-
 		if (this.socket !== undefined) {
 			this.socket.destroy()
 		}
@@ -52,6 +50,7 @@ class MXnetInstance extends InstanceBase {
 	init_telnet() {
 		const self = this
 
+		self.clearHeartbeatInterval();
 
 		const responseParser = new JSONParser.JSONParser({ separator: '', paths: ['$'] });
 		responseParser.onValue = (value) => {
@@ -61,27 +60,10 @@ class MXnetInstance extends InstanceBase {
 		self.updateStatus(InstanceStatus.Connecting)
 		self.log('info', "Connecting to MXnet")
 
-		const clearHeartbeat = () => {
-			if (self.heartbeatInterval !== undefined){
-				clearInterval(self.heartbeatInterval)
-				self.heartbeatInterval = undefined
-				self.log('debug', 'Heartbeat Destroyed')
-			}
-		}
-
-		const startHeartbeat = () => {
-			self.heartbeatInterval = setInterval(
-				self.sendHeartbeatCommand.bind(self),
-				(self.heartbeatTime*1000)
-			)
-		}
-
 		if (self.socket !== undefined) {
 			self.socket.destroy()
 			self.socket = undefined
 		}
-
-		clearHeartbeat()
 
 		if (self.config.port === undefined){
 			self.config.port = 24
@@ -99,7 +81,7 @@ class MXnetInstance extends InstanceBase {
 				self.updateStatus(InstanceStatus.Ok)
 				self.log('info', "Connected")
 
-				startHeartbeat()
+				self.startHeartbeatInterval()
 				self.pollMatrixPresets()
 				self.pollMatrixes()
 				self.pollDevices()
@@ -115,6 +97,21 @@ class MXnetInstance extends InstanceBase {
 				responseParser.write(chunk.toString("utf8"));
 			})
 		}
+	}
+
+	clearHeartbeatInterval() {
+		if (this.heartbeatInterval !== undefined){
+			clearInterval(this.heartbeatInterval)
+			this.heartbeatInterval = undefined
+			this.log('debug', 'Heartbeat Destroyed')
+		}
+	}
+
+	startHeartbeatInterval() {
+		this.heartbeatInterval = setInterval(
+			this.sendHeartbeatCommand.bind(this),
+			(this.heartbeatTime*1000)
+		)
 	}
 
 	responseParserOnValue(value, key, parent, stack) {
