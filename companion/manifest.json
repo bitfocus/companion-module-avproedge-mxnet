@@ -3,7 +3,7 @@
 	"name": "avproedge-mxnet",
 	"shortname": "avproedge-mxnet",
 	"description": "Control MXnet 1G Control Box over a Telnet connection",
-	"version": "0.0.1",
+	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-avproedge-mxnet.git",
 	"bugs": "https://github.com/bitfocus/companion-module-avproedge-mxnet/issues",
@@ -22,5 +22,5 @@
 	"legacyIds": [],
 	"manufacturer": "AVPro Edge",
 	"products": ["MXnet 1G Control Box"],
-	"keywords": []
+	"keywords": ["mxnet", "avproedge", "control mxnet 1G", "1G control box"]
 }

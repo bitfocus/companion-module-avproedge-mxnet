@@ -34,7 +34,7 @@ module.exports = function (self) {
 					default: presets[0] || ''
 				}
 			],
-			callback: async (event) => {
+			callback: (event) => {
 				self.activateMatrixPreset(event.options.preset)
 			},
 		},
@@ -52,7 +52,7 @@ module.exports = function (self) {
 					default: matrixes[0] || ''
 				}
 			],
-			callback: async (event) => {
+			callback: (event) => {
 				self.activateMatrix(event.options.matrix)
 			},
 		},
@@ -89,7 +89,7 @@ module.exports = function (self) {
 					default: false
 				}
 			],
-			callback: async (event) => {
+			callback: (event) => {
 				self.sendMatrixAset(event.options.encoder, event.options.decoders, event.options.sendVideo, event.options.sendAudio)
 			},
 		},
@@ -113,7 +113,7 @@ module.exports = function (self) {
 					required: true,
 				}
 			],
-			callback: async (event) => {
+			callback: (event) => {
 				self.sendIRCommand(event.options.device, event.options.command)
 			},
 		},
@@ -137,7 +137,7 @@ module.exports = function (self) {
 					required: true,
 				}
 			],
-			callback: async (event) => {
+			callback: (event) => {
 				self.sendCECCommand(event.options.device, event.options.command)
 			},
 		},
@@ -161,7 +161,7 @@ module.exports = function (self) {
 					default: decoderChoices[0]?.id || ''
 				}
 			],
-			callback: async (event) => {
+			callback: (event) => {
 				self.sendSetVideopath(event.options.encoder, event.options.decoder)
 			},
 		},
