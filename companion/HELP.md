@@ -9,3 +9,8 @@ Supported commands:
  * *Connect encoder to decoders (matrix aset)* - Allows routing an encoder's output to a set of decoders (video and/of audio routing).
  * *Send IR command* - Send an IR command to the specified device (encoder/decoder).
  * *Send CEC command* - Send a CEC command to the specified device (encoder/decoder).
+
+ Supported feebacks[1]:
+ * *Decoder has X video source* - Is the specified decoder being routed the specified video source?
+
+ [1] Note that in order for the feedbacks to work polling needs to be enabled in the connection config.
