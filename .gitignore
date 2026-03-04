@@ -3,3 +3,4 @@ node_modules/
 /pkg.tgz
 DEBUG-*
 /.yarn
+.DS_Store

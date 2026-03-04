@@ -19,6 +19,19 @@ const ConfigFields = [
 			"The default port is 24 - if you don't have any complex network setups, you don't need to change this port. ",
 		regex: Regex.PORT,
 	},
+	{
+		type: 'checkbox',
+		id: 'enablePolling',
+		label: 'Enable polling (required for feedbacks)',
+		default: true,
+	},
+	{
+		type: 'number',
+		id: 'pollingInterval',
+		label: 'Polling interval (ms)',
+		default: 5000,
+		isVisible: (options) => !!options.enablePolling,
+	},
 ];  
 
 module.exports = ConfigFields;
