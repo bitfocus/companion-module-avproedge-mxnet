@@ -51,6 +51,28 @@ function parseDeviceFromRaw(rawDevice) {
 }
 module.exports.parseDeviceFromRaw = parseDeviceFromRaw;
 
+function parsePresetsFromRaw(rawPresets) {
+    const presetNames = Object.keys(rawPresets);
+    return presetNames.map(name => {
+        const rawPreset = rawPresets[name];
+        const presetObj = {
+            name,
+            routing: {},
+        };
+
+        Object.keys(rawPreset).forEach(device => {
+            const deviceRouting = rawPreset[device];
+            presetObj.routing[device] = {
+                source_video_channel: parseInt(deviceRouting.ch_v),
+                source_audio_channel: parseInt(deviceRouting.ch_a),
+            };
+        });
+
+        return presetObj;
+    });
+}
+module.exports.parsePresetsFromRaw = parsePresetsFromRaw;
+
 function findDeviceById(devices, id) {
     return devices.find(device => device.id === id);
 }

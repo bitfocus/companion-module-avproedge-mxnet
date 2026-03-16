@@ -1,1 +1,40 @@
-{"cmd":"matrix preset list","info":{"mock_matrix_preset_1":{}, "mock_matrix_preset_2":{}, "mock_matrix_preset_3":{}},"code":0}
+{"cmd":"matrix preset list","info":{"mock_matrix_preset_1":{
+    "RX01-LED": {
+        "ch_v": "2",
+        "ch_a": "9999"
+    },
+    "RX02-Left": {
+        "ch_v": "2",
+        "ch_a": "9999"
+    },
+    "RX03-Right": {
+        "ch_v": "2",
+        "ch_a": "9999"
+    }
+}, "mock_matrix_preset_2":{
+    "RX01-LED": {
+        "ch_v": "3",
+        "ch_a": "9999"
+    },
+    "RX02-Left": {
+        "ch_v": "3",
+        "ch_a": "9999"
+    },
+    "RX03-Right": {
+        "ch_v": "3",
+        "ch_a": "9999"
+    }
+}, "mock_matrix_preset_3":{
+    "RX01-LED": {
+        "ch_v": "2",
+        "ch_a": "9999"
+    },
+    "RX02-Left": {
+        "ch_v": "3",
+        "ch_a": "9999"
+    },
+    "RX03-Right": {
+        "ch_v": "3",
+        "ch_a": "9999"
+    }
+}},"code":0}

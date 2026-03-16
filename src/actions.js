@@ -1,5 +1,5 @@
 module.exports = function (self) {
-	const presets = self.getPresets() || [];
+	const presets = self.getPresetNames() || [];
 	const matrixes = self.getMatrixes() || [];
 	const devices = self.getDevices() || [];
 	const deviceChoices = devices.map((device) => ({
