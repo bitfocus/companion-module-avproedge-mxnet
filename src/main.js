@@ -4,7 +4,7 @@ const UpdateActions = require('./actions')
 const UpdateFeedbacks = require('./feedbacks')
 const ConfigFields = require('./config')
 const MxnetClient = require('./mxnet/mxnetClient');
-const { arraysEqual, arrayEqualsUnordered, parseDeviceFromRaw, deviceIdAndDescriptionEquals, hasAnyDeviceRoutingChanged } = require('./utils');
+const { arraysEqual, arrayEqualsUnordered, parseDeviceFromRaw, deviceIdAndDescriptionEquals, hasAnyDeviceRoutingChanged, parsePresetsFromRaw, findDeviceById } = require('./utils');
 
 class MXnetInstance extends InstanceBase {
 	constructor(internal) {
@@ -82,6 +82,8 @@ class MXnetInstance extends InstanceBase {
 
 	onResponse(jsonData) {
 		//this.log('debug', `Processing JSON data: ${JSON.stringify(jsonData)}`);
+		const MATRIX_PRESET_ACTIVE_COMMAND = /matrix preset active ([a-zA-Z0-9\\-_]+)$/;
+		const MATRIX_ASET_COMMAND = /matrix aset :([av]+) ([a-zA-Z0-9\-_]+) ([a-zA-Z0-9 \-_]+)$/;
 
 		const cmd = jsonData.cmd;
 
@@ -91,6 +93,15 @@ class MXnetInstance extends InstanceBase {
 			this.handleMatrixListResponse(jsonData.info);
 		} else if (cmd === 'config get devicelist') {
 			this.handleDeviceListResponse(jsonData.info);
+		} else if (MATRIX_PRESET_ACTIVE_COMMAND.test(cmd)) {
+			const presetName = cmd.match(MATRIX_PRESET_ACTIVE_COMMAND)[1];
+			this.handleMatrixPresetActivated(presetName);
+		} else if (MATRIX_ASET_COMMAND.test(cmd)) {
+			const matchParts = cmd.match(MATRIX_ASET_COMMAND);
+			const options = matchParts[1];
+			const encoder = matchParts[2];
+			const decoders = matchParts[3].split(' ');
+			this.handleMatrixAset(options, encoder, decoders);
 		}
 	}
 
@@ -121,11 +132,48 @@ class MXnetInstance extends InstanceBase {
 	handleMatrixPresetListResponse(info) {
 		const newPresetNames = Object.keys(info);
 		newPresetNames.sort();
+		const newPresets = parsePresetsFromRaw(info);
 
-		if (!arrayEqualsUnordered(this.presets, newPresetNames)) {
-			this.presets = newPresetNames;
-			this.log('info', `Matrix preset list updated: ${newPresetNames}`);
-			this.updateActions();
+		this.presets = newPresets;
+		this.log('info', `Matrix preset list updated: ${newPresetNames}`);
+		this.updateActions();
+	}
+
+	handleMatrixPresetActivated(presetName) {
+		this.log('info', `Matrix preset activated: ${presetName}`);
+
+		const presetRouting = this.presets.find(p => p.name === presetName)?.routing;
+		if (presetRouting) {
+			Object.keys(presetRouting).forEach(deviceId => {
+				const presetDeviceRouting = presetRouting[deviceId];
+				const device = findDeviceById(this.devices, deviceId);
+				if (device) {
+					device.source_video_channel = presetDeviceRouting.source_video_channel;
+					device.source_audio_channel = presetDeviceRouting.source_audio_channel;
+				}
+			});
+
+			this.checkFeedbacks();
+		}
+	}
+
+	handleMatrixAset(options, encoder, decoders) {
+		this.log('info', `Matrix aset command completed: ${options}, encoder: ${encoder}, decoders: ${decoders}`);
+		const encoderDevice = findDeviceById(this.devices, encoder);
+		if (encoderDevice) {
+			decoders.forEach(decoderId => {
+				const decoderDevice = findDeviceById(this.devices, decoderId);
+				if (decoderDevice) {
+					if (options.includes('v')) {
+						decoderDevice.source_video_channel = encoderDevice.channel;
+					}
+					if (options.includes('a')) {
+						decoderDevice.source_audio_channel = encoderDevice.channel;
+					}
+				}
+			});
+
+			this.checkFeedbacks();
 		}
 	}
 
@@ -162,6 +210,12 @@ class MXnetInstance extends InstanceBase {
 
 	getPresets() {
 		return this.presets;
+	}
+
+	getPresetNames() {
+		const presetNames = (this.presets || []).map(p => p.name);
+		presetNames.sort();
+		return presetNames;
 	}
 
 	getMatrixes() {
