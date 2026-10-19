@@ -106,10 +106,10 @@ describe('sending commands', () => {
 		assert.deepEqual(sent(), ['matrix preset active Sunday\r\n', 'matrix active main\r\n'])
 	})
 
-	test('IR command joins multiple devices with commas', () => {
+	test('IR command joins multiple devices with colons', () => {
 		ctx.client.sendIRCommand('RX1', 'POWER')
 		ctx.client.sendIRCommand(['RX1', 'RX2'], 'POWER')
-		assert.deepEqual(sent(), ['config set device ir POWER RX1\r\n', 'config set device ir POWER RX1,RX2\r\n'])
+		assert.deepEqual(sent(), ['config set device ir POWER RX1\r\n', 'config set device ir POWER RX1:RX2\r\n'])
 	})
 
 	test('CEC command joins multiple devices with colons', () => {

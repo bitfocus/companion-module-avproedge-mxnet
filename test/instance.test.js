@@ -12,7 +12,8 @@ function makeInstance(config = { enablePolling: true }) {
 	inst.matrixes = []
 	inst.devices = []
 	inst.calls = { updateActions: 0, updateFeedbackDefinitions: 0, checkFeedbacks: 0 }
-	inst.log = () => {}
+	inst.logs = []
+	inst.log = (level, message) => inst.logs.push({ level, message })
 	inst.updateStatus = () => {}
 	inst.initMxnetClient = () => {}
 	inst.updateActions = () => inst.calls.updateActions++
@@ -160,5 +161,61 @@ describe('routing updates from command responses', () => {
 		const inst = withDevices()
 		inst.handleMatrixPresetActivated('nope')
 		assert.equal(inst.calls.checkFeedbacks, 0)
+	})
+})
+
+describe('response codes', () => {
+	const withDevices = () => {
+		const inst = makeInstance()
+		inst.handleDeviceListResponse(deviceListMock.info)
+		inst.handleMatrixPresetListResponse(presetListMock.info)
+		inst.calls.checkFeedbacks = 0
+		return inst
+	}
+	const decoderOf = (inst, id) => inst.devices.find((d) => d.id === id)
+	const failure = (cmd) => ({ error: 'No device: nope', cmd, code: -1, gid: 200000 })
+
+	test('a successful aset updates local routing', () => {
+		const inst = withDevices()
+		inst.onResponse({ cmd: 'matrix aset :v TX02-VisStage RX01-LED', info: 'OK', code: 0 })
+		assert.equal(decoderOf(inst, 'RX01-LED').source_video_channel, 3)
+		assert.equal(inst.calls.checkFeedbacks, 1)
+	})
+
+	test('a failed aset leaves local routing alone and logs a warning', () => {
+		const inst = withDevices()
+		inst.onResponse(failure('matrix aset :v TX02-VisStage RX01-LED'))
+		assert.equal(decoderOf(inst, 'RX01-LED').source_video_channel, 2)
+		assert.equal(inst.calls.checkFeedbacks, 0)
+		assert.equal(inst.logs.at(-1).level, 'warn')
+		assert.match(inst.logs.at(-1).message, /code -1.*No device: nope/)
+	})
+
+	test('a failed preset activation leaves local routing alone', () => {
+		const inst = withDevices()
+		inst.onResponse(failure('matrix preset active mock_matrix_preset_2'))
+		assert.equal(decoderOf(inst, 'RX01-LED').source_video_channel, 2)
+		assert.equal(inst.calls.checkFeedbacks, 0)
+	})
+
+	test('a failed list command does not throw or change state', () => {
+		const inst = withDevices()
+		const updates = inst.calls.updateActions
+		assert.doesNotThrow(() => inst.onResponse(failure('config get devicelist')))
+		assert.doesNotThrow(() => inst.onResponse(failure('matrix preset list')))
+		assert.equal(inst.devices.length, 5)
+		assert.equal(inst.calls.updateActions, updates)
+	})
+
+	test('a failed response for a command we do not track is still logged', () => {
+		const inst = withDevices()
+		inst.onResponse(failure('config set device ir 0000 0068 nope'))
+		assert.equal(inst.logs.at(-1).level, 'warn')
+	})
+
+	test('a response without a code field is treated as success', () => {
+		const inst = withDevices()
+		inst.onResponse({ cmd: 'matrix preset active mock_matrix_preset_2' })
+		assert.equal(decoderOf(inst, 'RX01-LED').source_video_channel, 3)
 	})
 })

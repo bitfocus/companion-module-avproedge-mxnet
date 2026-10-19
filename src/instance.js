@@ -83,6 +83,12 @@ class MXnetInstance extends InstanceBase {
 
 	onResponse(jsonData) {
 		//this.log('debug', `Processing JSON data: ${JSON.stringify(jsonData)}`);
+		// "code":0 means the command succeeded; failures look like {"error":"...","cmd":"...","code":-1}
+		if (jsonData?.code !== undefined && jsonData.code !== 0) {
+			this.log('warn', `Command failed (code ${jsonData.code}): ${jsonData.cmd} ${jsonData.error ?? ''}`);
+			return;
+		}
+
 		const response = parseResponse(jsonData);
 		if (!response) return;
 
@@ -257,6 +263,8 @@ class MXnetInstance extends InstanceBase {
 	}
 
 	pollMxnetInfo() {
+		// TODO: API v1.21.1 added `config get device routes [v,a,u,r,s] [DecID/DecMAC]`, which should be a
+		// lighter way to refresh routing than fetching the full device list on every poll
 		this.mxnetClient.pollMatrixPresets();
 		this.mxnetClient.pollMatrixes();
 		this.mxnetClient.pollDevices();
