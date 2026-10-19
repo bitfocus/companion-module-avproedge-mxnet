@@ -4,7 +4,9 @@ const { TelnetHelper } = require('@companion-module/base')
 class MxnetClient {
     constructor(options) {
         this.socket = undefined;
-        this.log = (level, message) => console.log(message); // TODO: replace with createModuleLogger when available));
+        // Both are injectable so the client can be tested without a real telnet connection
+        this.log = options.log || ((level, message) => console.log(message)); // TODO: replace with createModuleLogger when available
+        this.createSocket = options.createSocket || ((host, port) => new TelnetHelper(host, port));
 
         this.host = options.host;
         this.port = options.port;
@@ -35,7 +37,7 @@ class MxnetClient {
 		}
 
         self.log('info', `Connecting to MXnet at ${self.host}:${self.port}...`);
-        self.socket = new TelnetHelper(self.host, self.port)
+        self.socket = self.createSocket(self.host, self.port)
                     
         self.socket.on('error', (err) => {
             self.onError(err);
