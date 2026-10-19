@@ -8,9 +8,9 @@ const configGetDevicelistJson = require('./mocks/config_get_devicelist.json');
 const RESPONSE_DELAY = 1000;
 
 const MATRIX_PRESET_LIST_COMMAND = /matrix preset list$/;
-const MATRIX_PRESET_ACTIVE_COMMAND = /matrix preset active ([a-z0-9\\-_]+)$/;
+const MATRIX_PRESET_ACTIVE_COMMAND = /matrix preset active (.+)$/;
 const MATRIX_LIST_COMMAND = /matrix list$/;
-const MATRIX_ACTIVE_COMMAND = /matrix active ([a-z0-9\\-_]+)$/;
+const MATRIX_ACTIVE_COMMAND = /matrix active (.+)$/;
 const CONFIG_GET_DEVICELIST_COMMAND = /config get devicelist$/;
 
 const writeResponse = (c, response) => {

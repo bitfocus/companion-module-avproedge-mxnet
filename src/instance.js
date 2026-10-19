@@ -15,19 +15,20 @@ class MXnetInstance extends InstanceBase {
 		this.config = config;
 		this.mxnetClient = undefined;
 
-		this.updateStatus(InstanceStatus.Connecting)
-
-		this.updateActions(); // export actions
-		this.updateFeedbackDefinitions(); // export feedbacks
-
-		await this.configUpdated(config)
-
+		// state must exist before anything below builds definitions or starts connecting
 		this.presets = [];
 		this.matrixes = [];
 		this.devices = [];
 		this.heartbeatTime = 30_000; // 30 seconds
 		this.heartbeatInterval = undefined;
 		this.pollingInterval = undefined;
+
+		this.updateStatus(InstanceStatus.Connecting)
+
+		this.updateActions(); // export actions
+		this.updateFeedbackDefinitions(); // export feedbacks
+
+		await this.configUpdated(config)
 	}
 
 	// When module gets deleted
@@ -131,11 +132,15 @@ class MXnetInstance extends InstanceBase {
 	handleMatrixPresetListResponse(info) {
 		const newPresetNames = Object.keys(info);
 		newPresetNames.sort();
-		const newPresets = parsePresetsFromRaw(info);
+		const oldPresetNames = this.getPresetNames();
 
-		this.presets = newPresets;
-		this.log('info', `Matrix preset list updated: ${newPresetNames}`);
-		this.updateActions();
+		// routing is kept up to date for feedbacks, but the action dropdowns only depend on the names
+		this.presets = parsePresetsFromRaw(info);
+
+		if (!arrayEqualsUnordered(oldPresetNames, newPresetNames)) {
+			this.log('info', `Matrix preset list updated: ${newPresetNames}`);
+			this.updateActions();
+		}
 	}
 
 	handleMatrixPresetActivated(presetName) {
@@ -202,9 +207,7 @@ class MXnetInstance extends InstanceBase {
 			this.log('info', `Device routing updated`);
 		}
 
-		if (this.config.enablePolling) {
-			this.checkFeedbacks();
-		}
+		this.checkFeedbacks();
 	}
 
 	getPresets() {

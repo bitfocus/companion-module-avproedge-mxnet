@@ -22,7 +22,7 @@ const ConfigFields = [
 	{
 		type: 'checkbox',
 		id: 'enablePolling',
-		label: 'Enable polling (required for feedbacks)',
+		label: 'Enable polling (keeps feedbacks in sync with changes made outside Companion)',
 		default: true,
 	},
 	{
