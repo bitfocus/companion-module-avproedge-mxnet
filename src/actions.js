@@ -1,25 +1,25 @@
 module.exports = function (self) {
-	const presets = self.getPresetNames() || [];
-	const matrixes = self.getMatrixes() || [];
-	const devices = self.getDevices() || [];
+	const presets = self.getPresetNames() || []
+	const matrixes = self.getMatrixes() || []
+	const devices = self.getDevices() || []
 	const deviceChoices = devices.map((device) => ({
 		id: device.id,
-		label: device.description
-	}));
+		label: device.description,
+	}))
 	const encoderChoices = devices
 		.filter((device) => device.type === 'encoder')
 		.map((device) => ({
 			id: device.id,
-			label: device.description
-		}));
+			label: device.description,
+		}))
 	const decoderChoices = devices
 		.filter((device) => device.type === 'decoder')
 		.map((device) => ({
 			id: device.id,
-			label: device.description
-		}));
+			label: device.description,
+		}))
 
-	const actions = {};
+	const actions = {}
 
 	actions.set_matrix_preset = {
 		name: 'Set matrix preset',
@@ -30,15 +30,15 @@ module.exports = function (self) {
 				label: 'Select matrix preset',
 				choices: presets.map((preset) => ({
 					id: preset,
-					label: preset
+					label: preset,
 				})),
-				default: presets[0] || ''
-			}
+				default: presets[0] || '',
+			},
 		],
 		callback: (event) => {
 			self.activateMatrixPreset(event.options.preset)
 		},
-	};
+	}
 
 	actions.set_matrix = {
 		name: 'Set matrix',
@@ -49,15 +49,15 @@ module.exports = function (self) {
 				label: 'Select matrix',
 				choices: matrixes.map((matrix) => ({
 					id: matrix,
-					label: matrix
+					label: matrix,
 				})),
-				default: matrixes[0] || ''
-			}
+				default: matrixes[0] || '',
+			},
 		],
 		callback: (event) => {
 			self.activateMatrix(event.options.matrix)
 		},
-	};
+	}
 
 	actions.send_matrix_aset = {
 		name: 'Connect encoder to decoders (matrix aset)',
@@ -68,7 +68,7 @@ module.exports = function (self) {
 				label: 'Select encoder',
 				width: 12,
 				choices: encoderChoices,
-				default: encoderChoices[0]?.id || ''
+				default: encoderChoices[0]?.id || '',
 			},
 			{
 				id: 'decoders',
@@ -77,29 +77,34 @@ module.exports = function (self) {
 				width: 12,
 				minSelection: 1,
 				choices: decoderChoices,
-				default: decoderChoices[0] ? [decoderChoices[0].id] : []
+				default: decoderChoices[0] ? [decoderChoices[0].id] : [],
 			},
 			{
 				id: 'sendVideo',
 				type: 'checkbox',
 				label: 'Route video?',
-				default: true
+				default: true,
 			},
 			{
 				id: 'sendAudio',
 				type: 'checkbox',
 				label: 'Route audio?',
-				default: false
-			}
+				default: false,
+			},
 		],
 		callback: (event) => {
 			if (!event.options.sendVideo && !event.options.sendAudio) {
 				self.log('warn', 'Connect encoder to decoders: select video and/or audio to route')
 				return
 			}
-			self.sendMatrixAset(event.options.encoder, event.options.decoders, event.options.sendVideo, event.options.sendAudio)
+			self.sendMatrixAset(
+				event.options.encoder,
+				event.options.decoders,
+				event.options.sendVideo,
+				event.options.sendAudio,
+			)
 		},
-	};
+	}
 
 	actions.send_ir_command = {
 		name: 'Send IR command',
@@ -111,7 +116,7 @@ module.exports = function (self) {
 				width: 12,
 				minSelection: 1,
 				choices: deviceChoices,
-				default: deviceChoices[0] ? [deviceChoices[0].id] : []
+				default: deviceChoices[0] ? [deviceChoices[0].id] : [],
 			},
 			{
 				id: 'command',
@@ -119,12 +124,12 @@ module.exports = function (self) {
 				label: 'Command',
 				width: 12,
 				required: true,
-			}
+			},
 		],
 		callback: (event) => {
 			self.sendIRCommand(event.options.device, event.options.command)
 		},
-	};
+	}
 
 	actions.send_cec_command = {
 		name: 'Send CEC command',
@@ -136,7 +141,7 @@ module.exports = function (self) {
 				width: 12,
 				minSelection: 1,
 				choices: deviceChoices,
-				default: deviceChoices[0] ? [deviceChoices[0].id] : []
+				default: deviceChoices[0] ? [deviceChoices[0].id] : [],
 			},
 			{
 				id: 'command',
@@ -144,12 +149,12 @@ module.exports = function (self) {
 				label: 'Command',
 				width: 12,
 				required: true,
-			}
+			},
 		],
 		callback: (event) => {
 			self.sendCECCommand(event.options.device, event.options.command)
 		},
-	};
+	}
 
 	actions.send_set_videopath = {
 		name: 'Set video path',
@@ -160,7 +165,7 @@ module.exports = function (self) {
 				label: 'Select encoder',
 				width: 12,
 				choices: encoderChoices,
-				default: encoderChoices[0]?.id || ''
+				default: encoderChoices[0]?.id || '',
 			},
 			{
 				id: 'decoder',
@@ -168,13 +173,13 @@ module.exports = function (self) {
 				label: 'Select decoder',
 				width: 12,
 				choices: decoderChoices,
-				default: decoderChoices[0]?.id || ''
-			}
+				default: decoderChoices[0]?.id || '',
+			},
 		],
 		callback: (event) => {
 			self.sendSetVideopath(event.options.encoder, event.options.decoder)
 		},
-	};
+	}
 
-	self.setActionDefinitions(actions);
+	self.setActionDefinitions(actions)
 }
