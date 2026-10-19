@@ -14,6 +14,7 @@ class MxnetClient {
 		this.onInit = options.onInit
 		this.onError = options.onError
 		this.onConnect = options.onConnect
+		this.onDisconnect = options.onDisconnect || (() => {})
 		this.onResponse = options.onResponse
 	}
 
@@ -53,6 +54,7 @@ class MxnetClient {
 
 		self.socket.on('end', () => {
 			self.log('info', 'Telnet connection closed. Reconnecting...')
+			self.onDisconnect()
 			self.init()
 		})
 

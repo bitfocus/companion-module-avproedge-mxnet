@@ -30,6 +30,8 @@ class MXnetInstance extends InstanceBase {
 		this.heartbeatInterval = undefined
 		this.pollingInterval = undefined
 
+		this.setVariableDefinitions([{ variableId: 'connection_state', name: 'Connection state' }])
+		this.setConnectionState('connecting')
 		this.updateStatus(InstanceStatus.Connecting)
 
 		this.updateActions() // export actions
@@ -40,11 +42,23 @@ class MXnetInstance extends InstanceBase {
 
 	// When module gets deleted
 	async destroy() {
+		this.closeClient()
+	}
+
+	// Closes the connection and stops any timers that depend on it
+	closeClient() {
 		if (this.mxnetClient !== undefined) {
 			this.mxnetClient.close()
+			this.mxnetClient = undefined
 		}
 
 		this.clearAllIntervals()
+	}
+
+	// connection_state is one of: connecting, connected, disconnected, error, not configured
+	setConnectionState(state) {
+		this.connectionState = state
+		this.setVariableValues({ connection_state: state })
 	}
 
 	initMxnetClient() {
@@ -53,12 +67,13 @@ class MXnetInstance extends InstanceBase {
 		}
 
 		const mxnetOptions = {
-			host: this.config.host || 'localhost',
+			host: this.config.host,
 			port: this.config.port || 24,
 			log: (level, message) => this.log(level, message),
 			onInit: () => this.onInit(),
 			onError: (err) => this.onError(err),
 			onConnect: () => this.onConnect(),
+			onDisconnect: () => this.onDisconnect(),
 			onResponse: (jsonData) => this.onResponse(jsonData),
 		}
 		this.mxnetClient = new MxnetClient(mxnetOptions)
@@ -67,15 +82,25 @@ class MXnetInstance extends InstanceBase {
 
 	onInit() {
 		this.clearAllIntervals()
+		this.setConnectionState('connecting')
 		this.updateStatus(InstanceStatus.Connecting)
 	}
 
 	onError(err) {
+		this.setConnectionState('error')
 		this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
 		this.log('error', 'Network error: ' + err.message)
 	}
 
+	onDisconnect() {
+		this.clearAllIntervals()
+		this.setConnectionState('disconnected')
+		this.updateStatus(InstanceStatus.Disconnected)
+		this.log('info', 'Disconnected from MXnet')
+	}
+
 	onConnect() {
+		this.setConnectionState('connected')
 		this.updateStatus(InstanceStatus.Ok)
 		this.log('info', 'Connected')
 
@@ -119,27 +144,27 @@ class MXnetInstance extends InstanceBase {
 	}
 
 	activateMatrixPreset(presetName) {
-		this.mxnetClient.activateMatrixPreset(presetName)
+		this.mxnetClient?.activateMatrixPreset(presetName)
 	}
 
 	activateMatrix(matrixName) {
-		this.mxnetClient.activateMatrix(matrixName)
+		this.mxnetClient?.activateMatrix(matrixName)
 	}
 
 	sendMatrixAset(encoderId, decoderIds, sendVideo, sendAudio) {
-		this.mxnetClient.sendMatrixAset(encoderId, decoderIds, sendVideo, sendAudio)
+		this.mxnetClient?.sendMatrixAset(encoderId, decoderIds, sendVideo, sendAudio)
 	}
 
 	sendIRCommand(deviceId, command) {
-		this.mxnetClient.sendIRCommand(deviceId, command)
+		this.mxnetClient?.sendIRCommand(deviceId, command)
 	}
 
 	sendCECCommand(deviceId, command) {
-		this.mxnetClient.sendCECCommand(deviceId, command)
+		this.mxnetClient?.sendCECCommand(deviceId, command)
 	}
 
 	sendSetVideopath(encoderId, decoderId) {
-		this.mxnetClient.sendSetVideopath(encoderId, decoderId)
+		this.mxnetClient?.sendSetVideopath(encoderId, decoderId)
 	}
 
 	handleMatrixPresetListResponse(info) {
@@ -274,6 +299,13 @@ class MXnetInstance extends InstanceBase {
 		const resetConnection = this.config != config
 
 		this.config = config
+
+		if (!config.host) {
+			this.closeClient()
+			this.setConnectionState('not configured')
+			this.updateStatus(InstanceStatus.BadConfig, 'No host configured')
+			return
+		}
 
 		if (resetConnection || this.mxnetClient === undefined) {
 			this.initMxnetClient()
