@@ -6,7 +6,7 @@ class MxnetClient {
 	constructor(options) {
 		this.socket = undefined
 		// Both are injectable so the client can be tested without a real telnet connection
-		this.log = options.log || ((level, message) => console.log(message)) // TODO: replace with createModuleLogger when available
+		this.log = options.log || ((level, message) => console.log(`[${level}] ${message}`))
 		this.createSocket = options.createSocket || ((host, port) => new TelnetHelper(host, port))
 
 		this.host = options.host
@@ -45,23 +45,14 @@ class MxnetClient {
 
 		self.socket.on('error', (err) => {
 			self.onError(err)
-			// self.updateStatus(InstanceStatus.ConnectionFailure, err.message)
-			// self.log('error', "Network error: " + err.message)
 		})
 
 		self.socket.on('connect', () => {
 			self.onConnect()
-			// self.updateStatus(InstanceStatus.Ok)
-			// self.log('info', "Connected")
-
-			// self.startHeartbeatInterval()
-			// self.pollMatrixPresets()
-			// self.pollMatrixes()
-			// self.pollDevices()
 		})
 
 		self.socket.on('end', () => {
-			self.log('info', 'Telnet connection closed. Recommecting...')
+			self.log('info', 'Telnet connection closed. Reconnecting...')
 			self.init()
 		})
 
