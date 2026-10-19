@@ -125,8 +125,8 @@ class MXnetInstance extends InstanceBase {
 		this.mxnetClient.sendCECCommand(deviceId, command);
 	}
 
-	sendSetVideopathCommand(deviceId, videopath) {
-		this.mxnetClient.sendSetVideopathCommand(deviceId, videopath);
+	sendSetVideopath(encoderId, decoderId) {
+		this.mxnetClient.sendSetVideopath(encoderId, decoderId);
 	}
 
 	handleMatrixPresetListResponse(info) {
@@ -256,9 +256,8 @@ class MXnetInstance extends InstanceBase {
 
 	pollMxnetInfo() {
 		this.mxnetClient.pollMatrixPresets();
+		this.mxnetClient.pollMatrixes();
 		this.mxnetClient.pollDevices();
-
-		//update actions (if changes)
 	}
 
 	async configUpdated(config) {

@@ -18,12 +18,16 @@ class MxnetClient {
         const self = this;
         self.onInit();
 
-        const responseParser = new JSONParser.JSONParser({ separator: '', paths: ['$'] });
-        responseParser.onValue = (value) => {
-            if (value.stack.length == 0) { // ignore inner values
-		        self.onResponse(value.value);
-            }
+        const createResponseParser = () => {
+            const parser = new JSONParser.JSONParser({ separator: '', paths: ['$'] });
+            parser.onValue = (value) => {
+                if (value.stack.length == 0) { // ignore inner values
+                    self.onResponse(value.value);
+                }
+            };
+            return parser;
         };
+        let responseParser = createResponseParser();
 
         if (self.socket !== undefined) {
 			self.socket.destroy();
@@ -56,7 +60,13 @@ class MxnetClient {
         })
 
         self.socket.on('data', (chunk) => {
-            responseParser.write(chunk.toString("utf8"));
+            try {
+                responseParser.write(chunk.toString("utf8"));
+            } catch (error) {
+                // A parser stays in its error state after a failure, so start over with a fresh one
+                self.log('error', 'Error parsing response: ' + error.message);
+                responseParser = createResponseParser();
+            }
         })
     }
 
