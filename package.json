@@ -4,6 +4,7 @@
 	"main": "src/main.js",
 	"scripts": {
 		"format": "prettier -w .",
+		"format:check": "prettier --check src test",
 		"test": "node --test \"test/**/*.test.js\"",
 		"package": "companion-module-build"
 	},
