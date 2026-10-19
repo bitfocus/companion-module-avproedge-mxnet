@@ -116,8 +116,7 @@ describe('deviceIdAndDescriptionEquals', () => {
 		assert.equal(deviceIdAndDescriptionEquals([], []), true)
 	})
 
-	// Ids and descriptions are compared as two independent lists, so a swap goes unnoticed (PLAN.md bug 12)
-	test('detects descriptions swapped between devices', { todo: true }, () => {
+	test('detects descriptions swapped between devices', () => {
 		const a = [decoder('RX1', 1, 1, 'Left'), decoder('RX2', 1, 1, 'Right')]
 		const b = [decoder('RX1', 1, 1, 'Right'), decoder('RX2', 1, 1, 'Left')]
 		assert.equal(deviceIdAndDescriptionEquals(a, b), false)
@@ -147,8 +146,7 @@ describe('hasAnyDeviceRoutingChanged', () => {
 		assert.ok(hasAnyDeviceRoutingChanged(before, [encoder('TX1', 1), decoder('RX1', 1, 1), decoder('RX9', 1, 1)]))
 	})
 
-	// Currently returns undefined rather than false (PLAN.md bug 12)
-	test('returns a strict false when nothing changed', { todo: true }, () => {
+	test('returns a strict false when nothing changed', () => {
 		assert.equal(hasAnyDeviceRoutingChanged(before, [...before]), false)
 	})
 })

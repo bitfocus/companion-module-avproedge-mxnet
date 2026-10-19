@@ -1,5 +1,6 @@
-const MATRIX_PRESET_ACTIVE_COMMAND = /matrix preset active ([a-zA-Z0-9\\-_]+)$/
-const MATRIX_ASET_COMMAND = /matrix aset :([av]+) ([a-zA-Z0-9\-_]+) ([a-zA-Z0-9 \-_]+)$/
+// Preset names are everything after the command, so spaces and dashes are allowed
+const MATRIX_PRESET_ACTIVE_COMMAND = /^matrix preset active (.+?)\s*$/
+const MATRIX_ASET_COMMAND = /^matrix aset :([av]+) (\S+) (.+?)\s*$/
 
 /**
  * Classify a parsed MXnet JSON response by the command it echoes.
@@ -30,7 +31,7 @@ function parseResponse(jsonData) {
 			type: 'aset',
 			options: asetMatch[1],
 			encoder: asetMatch[2],
-			decoders: asetMatch[3].split(' '),
+			decoders: asetMatch[3].split(/\s+/),
 		}
 	}
 

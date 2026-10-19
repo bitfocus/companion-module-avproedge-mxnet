@@ -77,7 +77,7 @@ module.exports = function (self) {
 				width: 12,
 				minSelection: 1,
 				choices: decoderChoices,
-				default: decoderChoices[0]?.id || ''
+				default: decoderChoices[0] ? [decoderChoices[0].id] : []
 			},
 			{
 				id: 'sendVideo',
@@ -93,6 +93,10 @@ module.exports = function (self) {
 			}
 		],
 		callback: (event) => {
+			if (!event.options.sendVideo && !event.options.sendAudio) {
+				self.log('warn', 'Connect encoder to decoders: select video and/or audio to route')
+				return
+			}
 			self.sendMatrixAset(event.options.encoder, event.options.decoders, event.options.sendVideo, event.options.sendAudio)
 		},
 	};
@@ -107,7 +111,7 @@ module.exports = function (self) {
 				width: 12,
 				minSelection: 1,
 				choices: deviceChoices,
-				default: deviceChoices[0]?.id || ''
+				default: deviceChoices[0] ? [deviceChoices[0].id] : []
 			},
 			{
 				id: 'command',
@@ -132,7 +136,7 @@ module.exports = function (self) {
 				width: 12,
 				minSelection: 1,
 				choices: deviceChoices,
-				default: deviceChoices[0]?.id || ''
+				default: deviceChoices[0] ? [deviceChoices[0].id] : []
 			},
 			{
 				id: 'command',
