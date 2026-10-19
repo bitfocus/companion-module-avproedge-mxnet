@@ -17,8 +17,9 @@ function arraysEqualUnordered(a, b) {
 module.exports.arrayEqualsUnordered = arraysEqualUnordered;
 
 function deviceIdAndDescriptionEquals(a, b) {
-    return arraysEqualUnordered(a.map(aa => aa.id), b.map(bb => bb.id))
-        && arraysEqualUnordered(a.map(aa => aa.description), b.map(bb => bb.description));
+    if (a.length !== b.length) return false;
+    // compare each id together with its own description so swapped descriptions are noticed
+    return a.every(aa => b.some(bb => bb.id === aa.id && bb.description === aa.description));
 }
 module.exports.deviceIdAndDescriptionEquals = deviceIdAndDescriptionEquals;
 
@@ -34,6 +35,7 @@ function hasAnyDeviceRoutingChanged(a, b) {
             return true; // routing changed for this device
         }
     }
+    return false;
 }
 module.exports.hasAnyDeviceRoutingChanged = hasAnyDeviceRoutingChanged;
 

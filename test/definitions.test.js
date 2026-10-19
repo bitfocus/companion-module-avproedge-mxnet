@@ -12,6 +12,8 @@ function stubInstance({ devices = mockDevices(), presets = ['preset_a', 'preset_
 	const self = {
 		devices,
 		calls: [],
+		logs: [],
+		log: (level, message) => self.logs.push({ level, message }),
 		actions: undefined,
 		feedbacks: undefined,
 		getPresetNames: () => presets,
@@ -87,8 +89,7 @@ describe('action definitions', () => {
 		}
 	})
 
-	// Companion expects an array for multidropdown defaults (PLAN.md bug 9)
-	test('multidropdown defaults are arrays', { todo: true }, () => {
+	test('multidropdown defaults are arrays', () => {
 		for (const [id, action] of Object.entries(self.actions)) {
 			for (const option of action.options.filter((o) => o.type === 'multidropdown')) {
 				assert.ok(Array.isArray(option.default), `${id}.${option.id} default should be an array`)
@@ -149,10 +150,14 @@ describe('action callbacks', () => {
 		])
 	})
 
-	// Both unchecked would send "matrix aset : ..." (PLAN.md bug 7)
-	test('aset with neither video nor audio is not sent', { todo: true }, () => {
-		const options = { encoder: 'TX01-VisMain', decoders: ['RX01-LED'], sendVideo: false, sendAudio: false }
-		assert.deepEqual(run('send_matrix_aset', options), [])
+	test('aset with neither video nor audio is not sent', () => {
+		const s = stubInstance()
+		buildActions(s)
+		s.actions.send_matrix_aset.callback({
+			options: { encoder: 'TX01-VisMain', decoders: ['RX01-LED'], sendVideo: false, sendAudio: false },
+		})
+		assert.deepEqual(s.calls, [])
+		assert.equal(s.logs[0]?.level, 'warn')
 	})
 
 	test('every method an action calls exists on the instance', () => {

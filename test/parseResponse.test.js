@@ -24,8 +24,7 @@ describe('parseResponse', () => {
 		assert.equal(result.presetName, 'Sunday_Service_1')
 	})
 
-	// \\-_ in the regex is a range (backslash to underscore), so a literal dash never matches (PLAN.md bug 8)
-	test('preset names containing dashes', { todo: true }, () => {
+	test('preset names containing dashes', () => {
 		const result = parseResponse({ cmd: 'matrix preset active Sunday-Service' })
 		assert.equal(result?.presetName, 'Sunday-Service')
 	})
@@ -45,6 +44,11 @@ describe('parseResponse', () => {
 		assert.deepEqual(result.decoders, ['RX01-LED', 'RX02-Left', 'RX03-Right'])
 	})
 
+	test('trailing whitespace and carriage returns are not part of the name', () => {
+		assert.equal(parseResponse({ cmd: 'matrix preset active Sunday \r' }).presetName, 'Sunday')
+		assert.deepEqual(parseResponse({ cmd: 'matrix aset :v TX1 RX1  RX2 \r' }).decoders, ['RX1', 'RX2'])
+	})
+
 	test('ignores responses we do not act on', () => {
 		assert.equal(parseResponse({ cmd: 'matrix active mock_mx1' }), undefined)
 		assert.equal(parseResponse({ cmd: 'config set device ir POWER RX01' }), undefined)
@@ -57,8 +61,7 @@ describe('parseResponse', () => {
 		assert.equal(parseResponse(null), undefined)
 	})
 
-	// The regex has no space in its character class and the command is not quoted (PLAN.md bug 8)
-	test('preset names containing spaces', { todo: true }, () => {
+	test('preset names containing spaces', () => {
 		const result = parseResponse({ cmd: 'matrix preset active Sunday Service' })
 		assert.equal(result?.presetName, 'Sunday Service')
 	})

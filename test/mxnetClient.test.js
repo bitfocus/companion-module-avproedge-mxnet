@@ -148,11 +148,15 @@ describe('sending commands', () => {
 		assert.equal(first.destroyed, true)
 	})
 
-	// Starting a command with an embedded newline lets one action send several commands (PLAN.md bug 7)
-	test('strips line breaks from command arguments', { todo: true }, () => {
+	test('strips line breaks from command arguments', () => {
 		ctx.client.sendIRCommand('RX1', 'POWER\r\nconfig set device ir X RX2')
 		assert.equal(sent().length, 1)
 		assert.ok(!sent()[0].slice(0, -2).includes('\n'))
+	})
+
+	test('control characters other than the terminator are replaced with spaces', () => {
+		ctx.client.activateMatrixPreset('a\r\nb\x00c')
+		assert.deepEqual(sent(), ['matrix preset active a b c\r\n'])
 	})
 })
 
@@ -187,8 +191,7 @@ describe('parsing responses', () => {
 		assert.equal(ctx.responses.length, 1)
 	})
 
-	// Each chunk is decoded on its own, so a character split across two packets is corrupted
-	test('multi-byte characters split across chunks are not corrupted', { todo: true }, () => {
+	test('multi-byte characters split across chunks are not corrupted', () => {
 		const bytes = Buffer.from('{"cmd":"x","info":{"d":"Café"}}')
 		const cut = bytes.indexOf(0xc3) + 1 // between the two bytes of "é"
 		ctx.socket().emit('data', bytes.subarray(0, cut))

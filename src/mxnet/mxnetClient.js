@@ -1,3 +1,4 @@
+const { StringDecoder } = require('node:string_decoder')
 const JSONParser = require('@streamparser/json')
 const { TelnetHelper } = require('@companion-module/base')
 
@@ -30,6 +31,8 @@ class MxnetClient {
             return parser;
         };
         let responseParser = createResponseParser();
+        // Buffers the tail of a multi-byte character that is split across two packets
+        const decoder = new StringDecoder('utf8');
 
         if (self.socket !== undefined) {
 			self.socket.destroy();
@@ -63,7 +66,7 @@ class MxnetClient {
 
         self.socket.on('data', (chunk) => {
             try {
-                responseParser.write(chunk.toString("utf8"));
+                responseParser.write(typeof chunk === "string" ? chunk : decoder.write(chunk));
             } catch (error) {
                 // A parser stays in its error state after a failure, so start over with a fresh one
                 self.log('error', 'Error parsing response: ' + error.message);
@@ -74,7 +77,9 @@ class MxnetClient {
 
 	sendCommand(command) {
 		try {
-			this.socket.send(`${command}\r\n`);
+			// Line breaks (and other control characters) would let one argument inject extra commands
+			const safeCommand = String(command).replace(/[\x00-\x1f\x7f]+/g, ' ');
+			this.socket.send(`${safeCommand}\r\n`);
 		} catch (error) {
 			this.log('error', 'Error sending command: ' + error)
 			this.init();
