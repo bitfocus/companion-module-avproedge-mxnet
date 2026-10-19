@@ -120,7 +120,7 @@ class MxnetClient {
 
 	sendIRCommand(devices, command) {
 		this.log('debug', `Sending IR command to device [${devices}]: ${command}`)
-		this.sendCommand(`config set device ir ${command} ${Array.isArray(devices) ? devices.join(',') : devices}`)
+		this.sendCommand(`config set device ir ${command} ${Array.isArray(devices) ? devices.join(':') : devices}`)
 	}
 
 	sendCECCommand(devices, command) {
