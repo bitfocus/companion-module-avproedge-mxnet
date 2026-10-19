@@ -24,7 +24,7 @@ class FakeSocket extends EventEmitter {
 }
 
 function setup() {
-	const ctx = { sockets: [], logs: [], inits: 0, connects: 0, errors: [], responses: [] }
+	const ctx = { sockets: [], logs: [], inits: 0, connects: 0, events: [], errors: [], responses: [] }
 	ctx.client = new MxnetClient({
 		host: '10.0.0.5',
 		port: 24,
@@ -34,7 +34,11 @@ function setup() {
 			ctx.sockets.push(socket)
 			return socket
 		},
-		onInit: () => ctx.inits++,
+		onInit: () => {
+			ctx.inits++
+			ctx.events.push('init')
+		},
+		onDisconnect: () => ctx.events.push('disconnect'),
 		onConnect: () => ctx.connects++,
 		onError: (err) => ctx.errors.push(err),
 		onResponse: (data) => ctx.responses.push(data),
@@ -69,6 +73,12 @@ describe('connection lifecycle', () => {
 		assert.equal(first.destroyed, true)
 		assert.equal(ctx.sockets.length, 2)
 		assert.equal(ctx.inits, 2)
+	})
+
+	test('end reports the disconnect before reconnecting', () => {
+		const ctx = setup()
+		ctx.socket().emit('end')
+		assert.deepEqual(ctx.events, ['init', 'disconnect', 'init'])
 	})
 
 	test('close destroys the socket', () => {

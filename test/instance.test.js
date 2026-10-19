@@ -2,6 +2,7 @@ const { test, describe, mock } = require('node:test')
 const assert = require('node:assert/strict')
 const MXnetInstance = require('../src/instance')
 const MxnetClient = require('../src/mxnet/mxnetClient')
+const { InstanceStatus } = require('@companion-module/base')
 const deviceListMock = require('../mock_control_box/mocks/config_get_devicelist.json')
 const presetListMock = require('../mock_control_box/mocks/matrix_preset_list.json')
 
@@ -15,7 +16,11 @@ function makeInstance(config = { enablePolling: true }) {
 	inst.calls = { updateActions: 0, updateFeedbackDefinitions: 0, checkFeedbacks: 0 }
 	inst.logs = []
 	inst.log = (level, message) => inst.logs.push({ level, message })
-	inst.updateStatus = () => {}
+	inst.statuses = []
+	inst.variables = {}
+	inst.updateStatus = (status, message) => inst.statuses.push({ status, message })
+	inst.setVariableDefinitions = (defs) => (inst.variableDefinitions = defs)
+	inst.setVariableValues = (values) => Object.assign(inst.variables, values)
 	inst.initMxnetClient = () => {}
 	inst.updateActions = () => inst.calls.updateActions++
 	inst.updateFeedbackDefinitions = () => inst.calls.updateFeedbackDefinitions++
@@ -37,7 +42,7 @@ describe('init', () => {
 			inst.stateAtConnect = { presets: inst.presets, heartbeatTime: inst.heartbeatTime }
 		}
 
-		await inst.init({ enablePolling: true })
+		await inst.init({ enablePolling: true, host: '10.0.0.5' })
 
 		assert.deepEqual(snapshot, { presets: [], matrixes: [], devices: [] })
 		assert.deepEqual(inst.stateAtConnect, { presets: [], heartbeatTime: 30_000 })
@@ -229,5 +234,81 @@ describe('client logging', () => {
 		inst.initMxnetClient()
 		inst.mxnetClient.log('debug', 'hello from the client')
 		assert.deepEqual(inst.logs.at(-1), { level: 'debug', message: 'hello from the client' })
+	})
+})
+
+describe('connection state', () => {
+	const lastStatus = (inst) => inst.statuses.at(-1)
+
+	test('init defines the connection_state variable', async () => {
+		const inst = makeInstance()
+		await inst.init({ enablePolling: true, host: '10.0.0.5' })
+		assert.deepEqual(inst.variableDefinitions, [{ variableId: 'connection_state', name: 'Connection state' }])
+	})
+
+	test('connecting', () => {
+		const inst = makeInstance()
+		inst.onInit()
+		assert.equal(lastStatus(inst).status, InstanceStatus.Connecting)
+		assert.equal(inst.variables.connection_state, 'connecting')
+	})
+
+	test('connected starts polling and reports ok', () => {
+		const inst = makeInstance({ enablePolling: true, host: '10.0.0.5' })
+		inst.mxnetClient = { pollMatrixPresets() {}, pollMatrixes() {}, pollDevices() {} }
+		inst.onConnect()
+		inst.clearAllIntervals()
+		assert.equal(lastStatus(inst).status, InstanceStatus.Ok)
+		assert.equal(inst.variables.connection_state, 'connected')
+	})
+
+	test('error', () => {
+		const inst = makeInstance()
+		inst.onError(new Error('ECONNREFUSED'))
+		assert.deepEqual(lastStatus(inst), { status: InstanceStatus.ConnectionFailure, message: 'ECONNREFUSED' })
+		assert.equal(inst.variables.connection_state, 'error')
+	})
+
+	test('disconnected stops timers and reports disconnected', () => {
+		const inst = makeInstance()
+		inst.heartbeatInterval = setInterval(() => {}, 1000)
+		inst.onDisconnect()
+		assert.equal(inst.heartbeatInterval, undefined)
+		assert.equal(lastStatus(inst).status, InstanceStatus.Disconnected)
+		assert.equal(inst.variables.connection_state, 'disconnected')
+	})
+
+	test('an empty host is a bad config and does not connect', async () => {
+		const inst = makeInstance({ host: '' })
+		let connects = 0
+		inst.initMxnetClient = () => connects++
+		await inst.configUpdated({ host: '' })
+		assert.equal(connects, 0)
+		assert.deepEqual(lastStatus(inst), { status: InstanceStatus.BadConfig, message: 'No host configured' })
+		assert.equal(inst.variables.connection_state, 'not configured')
+	})
+
+	test('clearing the host closes an existing connection', async () => {
+		const inst = makeInstance({ host: '10.0.0.5' })
+		let closed = false
+		inst.mxnetClient = { close: () => (closed = true) }
+		await inst.configUpdated({ host: '' })
+		assert.equal(closed, true)
+		assert.equal(inst.mxnetClient, undefined)
+	})
+
+	test('a configured host connects', async () => {
+		const inst = makeInstance()
+		let connects = 0
+		inst.initMxnetClient = () => connects++
+		await inst.configUpdated({ host: '10.0.0.5' })
+		assert.equal(connects, 1)
+	})
+
+	test('actions do not throw when there is no connection', () => {
+		const inst = makeInstance({ host: '' })
+		inst.mxnetClient = undefined
+		assert.doesNotThrow(() => inst.activateMatrixPreset.call(inst, 'x'))
+		assert.doesNotThrow(() => inst.sendIRCommand.call(inst, 'RX1', 'POWER'))
 	})
 })
