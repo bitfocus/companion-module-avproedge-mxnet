@@ -55,6 +55,7 @@ class MXnetInstance extends InstanceBase {
 		const mxnetOptions = {
 			host: this.config.host || 'localhost',
 			port: this.config.port || 24,
+			log: (level, message) => this.log(level, message),
 			onInit: () => this.onInit(),
 			onError: (err) => this.onError(err),
 			onConnect: () => this.onConnect(),
@@ -67,7 +68,6 @@ class MXnetInstance extends InstanceBase {
 	onInit() {
 		this.clearAllIntervals()
 		this.updateStatus(InstanceStatus.Connecting)
-		this.log('info', 'Connecting to MXnet')
 	}
 
 	onError(err) {

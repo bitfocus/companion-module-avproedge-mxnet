@@ -1,6 +1,7 @@
-const { test, describe } = require('node:test')
+const { test, describe, mock } = require('node:test')
 const assert = require('node:assert/strict')
 const MXnetInstance = require('../src/instance')
+const MxnetClient = require('../src/mxnet/mxnetClient')
 const deviceListMock = require('../mock_control_box/mocks/config_get_devicelist.json')
 const presetListMock = require('../mock_control_box/mocks/matrix_preset_list.json')
 
@@ -217,5 +218,16 @@ describe('response codes', () => {
 		const inst = withDevices()
 		inst.onResponse({ cmd: 'matrix preset active mock_matrix_preset_2' })
 		assert.equal(decoderOf(inst, 'RX01-LED').source_video_channel, 3)
+	})
+})
+
+describe('client logging', () => {
+	test("client log output goes to the instance's logger", (t) => {
+		t.mock.method(MxnetClient.prototype, 'init', () => {})
+		const inst = makeInstance({ host: '10.0.0.5', port: 24 })
+		inst.initMxnetClient = MXnetInstance.prototype.initMxnetClient // makeInstance stubs it out
+		inst.initMxnetClient()
+		inst.mxnetClient.log('debug', 'hello from the client')
+		assert.deepEqual(inst.logs.at(-1), { level: 'debug', message: 'hello from the client' })
 	})
 })
