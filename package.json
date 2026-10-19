@@ -2,9 +2,13 @@
 	"name": "avproedge-mxnet",
 	"version": "1.1.2",
 	"main": "src/main.js",
+	"engines": {
+		"node": ">=22"
+	},
 	"scripts": {
 		"format": "prettier -w .",
 		"format:check": "prettier --check src test",
+		"lint": "eslint .",
 		"test": "node --test \"test/**/*.test.js\"",
 		"package": "companion-module-build"
 	},
@@ -19,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.8.0",
+		"eslint": "^9.36.0",
 		"prettier": "^3.4.2"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json",
