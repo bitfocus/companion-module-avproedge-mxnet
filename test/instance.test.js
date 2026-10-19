@@ -1,4 +1,4 @@
-const { test, describe, mock } = require('node:test')
+const { test, describe } = require('node:test')
 const assert = require('node:assert/strict')
 const MXnetInstance = require('../src/instance')
 const MxnetClient = require('../src/mxnet/mxnetClient')

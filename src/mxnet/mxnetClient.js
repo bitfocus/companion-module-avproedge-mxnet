@@ -72,6 +72,7 @@ class MxnetClient {
 	sendCommand(command) {
 		try {
 			// Line breaks (and other control characters) would let one argument inject extra commands
+			// eslint-disable-next-line no-control-regex -- control characters are exactly what is being stripped
 			const safeCommand = String(command).replace(/[\x00-\x1f\x7f]+/g, ' ')
 			this.socket.send(`${safeCommand}\r\n`)
 		} catch (error) {
