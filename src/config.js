@@ -32,6 +32,6 @@ const ConfigFields = [
 		default: 5000,
 		isVisible: (options) => !!options.enablePolling,
 	},
-];  
+]
 
-module.exports = ConfigFields;
+module.exports = ConfigFields
