@@ -77,10 +77,10 @@ describe('action definitions', () => {
 
 	test('encoder and decoder dropdowns only offer the matching device type', () => {
 		const aset = self.actions.send_matrix_aset.options
-		assert.deepEqual(choiceIds(aset.find((o) => o.id === 'encoder')), ['TX01-VisMain', 'TX01-VisStage'])
+		assert.deepEqual(choiceIds(aset.find((o) => o.id === 'encoder')), ['TX01-VisMain', 'TX02-VisStage'])
 		assert.deepEqual(choiceIds(aset.find((o) => o.id === 'decoders')), ['RX01-LED', 'RX02-Left', 'RX03-Right'])
 		const path = self.actions.send_set_videopath.options
-		assert.deepEqual(choiceIds(path.find((o) => o.id === 'encoder')), ['TX01-VisMain', 'TX01-VisStage'])
+		assert.deepEqual(choiceIds(path.find((o) => o.id === 'encoder')), ['TX01-VisMain', 'TX02-VisStage'])
 	})
 
 	test('IR and CEC offer every device', () => {
@@ -231,13 +231,13 @@ describe('feedback definitions', () => {
 	})
 
 	test('false when the decoder is on a different encoder', () => {
-		assert.equal(check('RX01-LED', 'TX01-VisStage'), false)
+		assert.equal(check('RX01-LED', 'TX02-VisStage'), false)
 	})
 
 	test('follows routing changes made after the definition was built', () => {
 		const devices = mockDevices()
 		devices.find((d) => d.id === 'RX01-LED').source_video_channel = 3
-		assert.equal(check('RX01-LED', 'TX01-VisStage', devices), true)
+		assert.equal(check('RX01-LED', 'TX02-VisStage', devices), true)
 		assert.equal(check('RX01-LED', 'TX01-VisMain', devices), false)
 	})
 
