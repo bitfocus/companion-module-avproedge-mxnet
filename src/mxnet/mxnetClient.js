@@ -83,14 +83,19 @@ class MxnetClient {
 	}
 
 	sendCommand(command) {
+		// The connection recovers on its own, so a command that can't be sent (e.g. while it reconnects) is only logged
+		const logFailure = (error) => this.log('warn', 'Error sending command: ' + error.message)
 		try {
 			// Line breaks (and other control characters) would let one argument inject extra commands
 			// eslint-disable-next-line no-control-regex -- control characters are exactly what is being stripped
 			const safeCommand = String(command).replace(/[\x00-\x1f\x7f]+/g, ' ')
-			this.socket.send(`${safeCommand}\r\n`)
+			// send() is async, so a failed write rejects rather than throws,
+			// and it resolves false without sending while the socket is still connecting
+			this.socket.send(`${safeCommand}\r\n`).then((sent) => {
+				if (sent === false) this.log('warn', 'Not connected, command dropped: ' + safeCommand)
+			}, logFailure)
 		} catch (error) {
-			this.log('error', 'Error sending command: ' + error)
-			this.init()
+			logFailure(error)
 		}
 	}
 
