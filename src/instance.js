@@ -87,6 +87,8 @@ class MXnetInstance extends InstanceBase {
 	}
 
 	onError(err) {
+		// Polls and heartbeats can't reach the Control Box until the TCP helper reconnects, and onConnect restarts them
+		this.clearAllIntervals()
 		this.setConnectionState('error')
 		this.updateStatus(InstanceStatus.ConnectionFailure, err.message)
 		this.log('error', 'Network error: ' + err.message)
@@ -100,6 +102,8 @@ class MXnetInstance extends InstanceBase {
 	}
 
 	onConnect() {
+		// the TCP helper reconnects on its own after an error, so timers from the previous connection may still be running
+		this.clearAllIntervals()
 		this.setConnectionState('connected')
 		this.updateStatus(InstanceStatus.Ok)
 		this.log('info', 'Connected')
@@ -280,19 +284,19 @@ class MXnetInstance extends InstanceBase {
 	}
 
 	startHeartbeatInterval() {
-		this.heartbeatInterval = setInterval(() => this.mxnetClient.sendHeartbeatCommand(), this.heartbeatTime)
+		this.heartbeatInterval = setInterval(() => this.mxnetClient?.sendHeartbeatCommand(), this.heartbeatTime)
 	}
 
 	startPollingInterval() {
-		this.heartbeatInterval = setInterval(() => this.pollMxnetInfo(), this.config.pollingInterval || 5000)
+		this.pollingInterval = setInterval(() => this.pollMxnetInfo(), this.config.pollingInterval || 5000)
 	}
 
 	pollMxnetInfo() {
 		// TODO: API v1.21.1 added `config get device routes [v,a,u,r,s] [DecID/DecMAC]`, which should be a
 		// lighter way to refresh routing than fetching the full device list on every poll
-		this.mxnetClient.pollMatrixPresets()
-		this.mxnetClient.pollMatrixes()
-		this.mxnetClient.pollDevices()
+		this.mxnetClient?.pollMatrixPresets()
+		this.mxnetClient?.pollMatrixes()
+		this.mxnetClient?.pollDevices()
 	}
 
 	async configUpdated(config) {
