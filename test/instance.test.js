@@ -262,9 +262,41 @@ describe('connection state', () => {
 		assert.equal(inst.variables.connection_state, 'connected')
 	})
 
-	test('error', () => {
+	test('reconnecting after an error does not leave extra timers running', () => {
+		for (const enablePolling of [true, false]) {
+			const inst = makeInstance({ enablePolling, host: '10.0.0.5' })
+			inst.mxnetClient = { pollMatrixPresets() {}, pollMatrixes() {}, pollDevices() {} }
+			inst.onConnect()
+			const first = enablePolling ? inst.pollingInterval : inst.heartbeatInterval
+			inst.onError(new Error('ECONNRESET'))
+			inst.onConnect()
+			assert.equal(first._destroyed, true)
+			inst.clearAllIntervals()
+			assert.equal(inst.pollingInterval, undefined)
+			assert.equal(inst.heartbeatInterval, undefined)
+		}
+	})
+
+	test('polling keeps its own timer', () => {
+		const inst = makeInstance({ enablePolling: true, host: '10.0.0.5' })
+		inst.mxnetClient = { pollMatrixPresets() {}, pollMatrixes() {}, pollDevices() {} }
+		inst.onConnect()
+		assert.notEqual(inst.pollingInterval, undefined)
+		assert.equal(inst.heartbeatInterval, undefined)
+		inst.clearAllIntervals()
+	})
+
+	test('a timer tick after the connection is closed does not throw', () => {
 		const inst = makeInstance()
+		inst.mxnetClient = undefined
+		assert.doesNotThrow(() => inst.pollMxnetInfo())
+	})
+
+	test('error stops timers and reports a connection failure', () => {
+		const inst = makeInstance()
+		inst.pollingInterval = setInterval(() => {}, 1000)
 		inst.onError(new Error('ECONNREFUSED'))
+		assert.equal(inst.pollingInterval, undefined)
 		assert.deepEqual(lastStatus(inst), { status: InstanceStatus.ConnectionFailure, message: 'ECONNREFUSED' })
 		assert.equal(inst.variables.connection_state, 'error')
 	})
