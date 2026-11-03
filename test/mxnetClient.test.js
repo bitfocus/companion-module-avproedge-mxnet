@@ -1,6 +1,7 @@
 const { test, describe, beforeEach } = require('node:test')
 const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
+const net = require('node:net')
 const MxnetClient = require('../src/mxnet/mxnetClient')
 
 class FakeSocket extends EventEmitter {
@@ -66,19 +67,32 @@ describe('connection lifecycle', () => {
 		assert.deepEqual(ctx.errors, [err])
 	})
 
-	test('end destroys the old socket and reconnects with a new one', () => {
+	test('end destroys the socket and reconnects with a new one after a delay', (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout'] })
 		const ctx = setup()
 		const first = ctx.socket()
 		first.emit('end')
 		assert.equal(first.destroyed, true)
+		assert.equal(ctx.sockets.length, 1)
+		t.mock.timers.tick(2000)
 		assert.equal(ctx.sockets.length, 2)
 		assert.equal(ctx.inits, 2)
 	})
 
-	test('end reports the disconnect before reconnecting', () => {
+	test('end reports the disconnect without immediately reconnecting', (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout'] })
 		const ctx = setup()
 		ctx.socket().emit('end')
-		assert.deepEqual(ctx.events, ['init', 'disconnect', 'init'])
+		assert.deepEqual(ctx.events, ['init', 'disconnect'])
+	})
+
+	test('close cancels a pending reconnect', (t) => {
+		t.mock.timers.enable({ apis: ['setTimeout'] })
+		const ctx = setup()
+		ctx.socket().emit('end')
+		ctx.client.close()
+		t.mock.timers.tick(2000)
+		assert.equal(ctx.sockets.length, 1)
 	})
 
 	test('close destroys the socket', () => {
@@ -93,6 +107,50 @@ describe('connection lifecycle', () => {
 		const ctx = setup()
 		ctx.client.close()
 		assert.doesNotThrow(() => ctx.client.close())
+	})
+})
+
+// Uses the real telnet helper, which a fake socket can't stand in for: its decoder pipe is what breaks on 'end'
+describe('reconnecting over a real TCP connection', () => {
+	test('responses still arrive after the Control Box closes the session', { timeout: 3000 }, async (t) => {
+		let connections = 0
+		const server = net.createServer((conn) => {
+			const id = ++connections
+			conn.on('data', () => {
+				conn.write(`{"cmd":"config get devicelist","conn":${id}}\r\n`)
+				// Like the Control Box ending the telnet session after the first reply
+				if (id === 1) conn.end()
+			})
+		})
+		await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+
+		const responses = []
+		let gotSecondResponse
+		const secondResponse = new Promise((resolve) => (gotSecondResponse = resolve))
+		const client = new MxnetClient({
+			host: '127.0.0.1',
+			port: server.address().port,
+			reconnectDelay: 50,
+			log: () => {},
+			onInit: () => {},
+			onError: () => {},
+			onConnect: () => client.pollDevices(),
+			onResponse: (data) => {
+				responses.push(data)
+				if (data.conn === 2) gotSecondResponse()
+			},
+		})
+		t.after(() => {
+			client.close()
+			server.close()
+		})
+
+		client.init()
+		await secondResponse
+		assert.deepEqual(
+			responses.map((r) => r.conn),
+			[1, 2],
+		)
 	})
 })
 

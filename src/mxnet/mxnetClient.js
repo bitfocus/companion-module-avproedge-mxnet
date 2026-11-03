@@ -2,12 +2,17 @@ const { StringDecoder } = require('node:string_decoder')
 const JSONParser = require('@streamparser/json')
 const { TelnetHelper } = require('@companion-module/base')
 
+// Same delay the TCP helper waits before its own reconnect attempts
+const RECONNECT_DELAY = 2000
+
 class MxnetClient {
 	constructor(options) {
 		this.socket = undefined
-		// Both are injectable so the client can be tested without a real telnet connection
+		this.reconnectTimer = undefined
+		// These are injectable so the client can be tested without a real telnet connection or a long wait
 		this.log = options.log || ((level, message) => console.log(`[${level}] ${message}`))
 		this.createSocket = options.createSocket || ((host, port) => new TelnetHelper(host, port))
+		this.reconnectDelay = options.reconnectDelay ?? RECONNECT_DELAY
 
 		this.host = options.host
 		this.port = options.port
@@ -36,6 +41,7 @@ class MxnetClient {
 		// Buffers the tail of a multi-byte character that is split across two packets
 		const decoder = new StringDecoder('utf8')
 
+		self.cancelReconnect()
 		if (self.socket !== undefined) {
 			self.socket.destroy()
 			self.socket = undefined
@@ -52,10 +58,17 @@ class MxnetClient {
 			self.onConnect()
 		})
 
+		// The telnet helper only pipes its socket into its decoder once, and that pipe ends with the session,
+		// so a helper that reconnects after 'end' would never deliver data again. Build a new one instead,
+		// after a short delay so the disconnected state stays visible until then.
 		self.socket.on('end', () => {
 			self.log('info', 'Telnet connection closed. Reconnecting...')
 			self.onDisconnect()
-			self.init()
+			self.socket.destroy()
+			self.reconnectTimer = setTimeout(() => {
+				self.reconnectTimer = undefined
+				self.init()
+			}, self.reconnectDelay)
 		})
 
 		self.socket.on('data', (chunk) => {
@@ -81,7 +94,15 @@ class MxnetClient {
 		}
 	}
 
+	cancelReconnect() {
+		if (this.reconnectTimer !== undefined) {
+			clearTimeout(this.reconnectTimer)
+			this.reconnectTimer = undefined
+		}
+	}
+
 	close() {
+		this.cancelReconnect()
 		if (this.socket !== undefined) {
 			this.socket.destroy()
 			this.socket = undefined
