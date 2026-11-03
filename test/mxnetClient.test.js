@@ -12,11 +12,16 @@ class FakeSocket extends EventEmitter {
 		this.sent = []
 		this.destroyed = false
 		this.sendError = undefined
+		this.connected = true
 	}
 
-	send(data) {
+	// async like TelnetHelper.send(), so failures reject rather than throw
+	async send(data) {
 		if (this.sendError) throw this.sendError
+		// like the TCP helper, which resolves false while it's still connecting
+		if (!this.connected) return false
 		this.sent.push(data)
+		return true
 	}
 
 	destroy() {
@@ -207,13 +212,32 @@ describe('sending commands', () => {
 		assert.deepEqual(sent(), ['\r\n'])
 	})
 
-	test('a failed send is logged and reconnects', () => {
+	test('a failed send is logged and leaves reconnecting to the TCP helper', async () => {
 		const first = ctx.socket()
-		first.sendError = new Error('socket closed')
+		first.sendError = new Error('Cannot write to destroyed socket')
 		ctx.client.pollDevices()
-		assert.ok(ctx.logs.some((l) => l.level === 'error' && /socket closed/.test(l.message)))
-		assert.equal(ctx.sockets.length, 2)
-		assert.equal(first.destroyed, true)
+		await new Promise((resolve) => setImmediate(resolve))
+		assert.ok(ctx.logs.some((l) => l.level === 'warn' && /destroyed socket/.test(l.message)))
+		assert.equal(ctx.sockets.length, 1)
+		assert.equal(first.destroyed, false)
+	})
+
+	test('a command sent while still connecting is logged as dropped', async () => {
+		ctx.socket().connected = false
+		ctx.client.activateMatrixPreset('Sunday')
+		await new Promise((resolve) => setImmediate(resolve))
+		assert.deepEqual(sent(), [])
+		assert.ok(
+			ctx.logs.some(
+				(l) => l.level === 'warn' && l.message === 'Not connected, command dropped: matrix preset active Sunday',
+			),
+		)
+	})
+
+	test('sending after close is logged instead of throwing', () => {
+		ctx.client.close()
+		assert.doesNotThrow(() => ctx.client.pollDevices())
+		assert.ok(ctx.logs.some((l) => l.level === 'warn' && /Error sending command/.test(l.message)))
 	})
 
 	test('strips line breaks from command arguments', () => {
